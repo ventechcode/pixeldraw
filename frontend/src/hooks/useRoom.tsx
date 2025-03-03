@@ -26,7 +26,7 @@ function getTabId() {
 
 export function RoomProvider({ children }: { children: React.ReactNode }) {
   const [room, setRoom] = useState<Room | null>(null);
-  const client = new Client("ws://localhost:3553");
+  const client = new Client(process.env.NEXT_PUBLIC_COLYSEUS_ENDPOINT);
   const tabId = getTabId();
 
   // When a room is set, store both sessionId and reconnectionToken in localStorage.
