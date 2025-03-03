@@ -3,11 +3,14 @@ import express from 'express';
 import cors from "cors";
 import { Server } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 import Lobby from "./MyRoom"
 
 const app = express();
-const port = Number(process.env.PORT || 3553);
+const port = Number(process.env.PORT);
 
 app.use(cors());
 app.use(express.json());
