@@ -10,12 +10,13 @@ import { matchMaker } from "@colyseus/core";
 matchMaker.controller.getCorsHeaders = function(req) {
   const allowedOrigins = ['https://pixeldraw-chi.vercel.app', 'http://localhost:3000'];
   const origin = req.headers.origin;
+  console.log("CORS request from origin:", origin);
   
   if (allowedOrigins.includes(origin)) {
     return {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Credentials': 'true',
-      'Vary': 'Origin'
+      'Vary': '*'
     };
   }
   
@@ -40,3 +41,5 @@ const gameServer = new Server({
 
 gameServer.define('lobby', Lobby).filterBy(['public']);
 gameServer.listen(port);
+
+console.log(`Game server started on port ${port}`);
