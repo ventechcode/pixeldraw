@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRoom } from "@/hooks/useRoom";
 import { getStateCallbacks } from "colyseus.js";
+import ChatBox from "@/components/ChatBox";
 
 interface Player {
   name: string;
@@ -39,17 +40,28 @@ export default function Lobby() {
   }
 
   return (
-    <div>
-      <h1>🎮 Lobby {room.roomId}</h1>
-      <ul>
-        {Array.from(players?.values() || []).map((player, i) => (
-          <li key={i}>👤 {
-            player.sessionId === room.sessionId
-              ? player.leader ? `${player.name} (You) (Leader)` : player.name + " (You)"
-              : player.leader ? `${player.name} (Leader)` : player.name
-          }</li>
-        ))}
-      </ul>
+    <div className="w-full flex flex-row justify-around gap-4 px-16 h-3/4">
+      <div className="border rounded-md px-8">
+        <h1 className="py-4">🎮 Lobby {room.roomId}</h1>
+        <ul>
+          {Array.from(players?.values() || []).map((player, i) => (
+            <li key={i}>
+              👤{" "}
+              {player.sessionId === room.sessionId
+                ? player.leader
+                  ? `${player.name} (You) (Leader)`
+                  : player.name + " (You)"
+                : player.leader
+                ? `${player.name} (Leader)`
+                : player.name}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex flex-col items-center border rounded-md w-3/5">
+        <h1>🎨 Game</h1>
+      </div>
+      <ChatBox />
     </div>
   );
 }
