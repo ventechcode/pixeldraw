@@ -1,12 +1,20 @@
 import { Client, Room } from "@colyseus/core";
 import { LobbyState } from "./LobbyState"; // Pfad anpassen
 import Player from "./player";
+import ChatMessage from "./ChatMessage";
 
 class MyRoom extends Room<LobbyState> {
   state = new LobbyState();
 
   onCreate(options: any) {
     this.setPrivate(!options.public);
+    this.onMessage("chat", (client, message) => {
+      console.log("Chat message received:", message);
+      const chatMsg = new ChatMessage();
+      chatMsg.message = message;
+      chatMsg.sessionId = client.sessionId;
+      this.broadcast("chat", message);
+    });
   }
 
   onJoin(client: Client, options: any) {

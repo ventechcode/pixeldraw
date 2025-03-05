@@ -10,7 +10,6 @@ import { BoxesContainer } from "@/components/ui/background-boxes";
 export default function Home() {
   const [lobbyId, setLobbyId] = useState("");
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setRoom, client } = useRoom();
 
@@ -35,7 +34,6 @@ export default function Home() {
         <Button
           className="bg-[#a6e3a1] hover:bg-[#a6e3a1]/90 hover:cursor-pointer h-11 font-semibold text-xl"
           onClick={async () => {
-            setLoading(true);
             if (!name) {
               alert("Please enter your name");
               return;
@@ -58,18 +56,20 @@ export default function Home() {
               // Speichere den Raum im Context
               setRoom(room);
               router.push(`/lobby`);
-              setLoading(false);
             } catch (e) {
               console.error("join error", e);
             }
           }}
         >
-          {loading ? "Loading..." : "Play!"}
+          Play!
         </Button>
         <Button
           className="bg-[#89b4fa] hover:bg-[#89b4fa]/90 hover:cursor-pointer font-semibold"
           onClick={async () => {
-            setLoading(true);
+            if (!name) {
+              alert("Please enter your name");
+              return;
+            }
             try {
               const room = await client.create("lobby", {
                 name,
@@ -77,13 +77,12 @@ export default function Home() {
               });
               setRoom(room);
               router.push(`/lobby`);
-              setLoading(false);
             } catch (e) {
               console.error("join error", e);
             }
           }}
         >
-          {loading ? "Loading..." : "Create Private Room"}
+          Create Private Room
         </Button>
       </div>
     </div>
