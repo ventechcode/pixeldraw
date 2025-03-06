@@ -1,19 +1,21 @@
 import { Client, Room } from "@colyseus/core";
 import { LobbyState } from "./LobbyState"; // Pfad anpassen
 import Player from "./player";
-import ChatMessage from "./ChatMessage";
 
 class MyRoom extends Room<LobbyState> {
   state = new LobbyState();
 
   onCreate(options: any) {
     this.setPrivate(!options.public);
+    this.autoDispose = false;
     this.onMessage("chat", (client, message) => {
-      console.log("Chat message received:", message);
-      const chatMsg = new ChatMessage();
-      chatMsg.message = message;
-      chatMsg.sessionId = client.sessionId;
-      this.broadcast("chat", message);
+      console.log("Chat message received from", client.sessionId);
+      this.broadcast("chat", `${this.state.players.get(client.sessionId).name}: ${message}`);
+    });
+    this.onMessage("start", (client) => {
+      if (this.state.players.get(client.sessionId).leader) {
+        this.broadcast("start");
+      }
     });
   }
 
@@ -25,7 +27,7 @@ class MyRoom extends Room<LobbyState> {
       player.leader = true;
     }
     this.state.players.set(client.sessionId, player);
-    console.log(options.name, "joined the lobby!");
+    this.broadcast("chat", `${player.name} joined the lobby!`);
   }
 
   async onLeave(client: Client, consented?: boolean) {
@@ -40,10 +42,12 @@ class MyRoom extends Room<LobbyState> {
     }
 
     console.log(player.name, client.sessionId, "left the lobby!");
+    this.broadcast("chat", `${player.name} left the lobby!`);
 
     const reconnectedClient = await this.allowReconnection(client, 60);
     console.log(player.name, reconnectedClient.sessionId, "reconnected!");
     this.state.players.set(reconnectedClient.sessionId, player);
+    this.broadcast("chat", `${player.name} reconnected!`);
   }
 
   onDispose() {

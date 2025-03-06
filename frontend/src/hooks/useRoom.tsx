@@ -7,7 +7,7 @@ type RoomContextType = {
   room: Room | null;
   client: Client;
   setRoom: (room: Room) => void;
-  reconnect: () => Promise<void>;
+  reconnect: () => Promise<boolean>;
 };
 
 const RoomContext = createContext<RoomContextType | null>(null);
@@ -52,22 +52,22 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
 
   async function reconnect() {
     // Retrieve stored reconnection data from localStorage using the tab-specific key.
-    const storedData = localStorage.getItem(`reconnectionData_${tabId}`);
-    if (!storedData) {
-      console.error("No reconnection data found");
-      return;
+    if (typeof window !== "undefined") {
+      const storedData = localStorage.getItem(`reconnectionData_${tabId}`);
+      if (!storedData) return false;
+      const { reconnectionToken } = JSON.parse(storedData);
+      if (!reconnectionToken) return false;
+
+      try {
+        const tmp = await client.reconnect(reconnectionToken);
+        setRoom(tmp);
+        return true;
+      } catch (e) {
+        console.error("reconnect error", e);
+        return false;
+      }
     }
-    const { reconnectionToken } = JSON.parse(storedData);
-    if (!reconnectionToken) {
-      console.error("Reconnection token not available");
-      return;
-    }
-    try {
-      const tmp = await client.reconnect(reconnectionToken);
-      setRoom(tmp);
-    } catch (e) {
-      console.error("reconnect error", e);
-    }
+    return false;
   }
 
   return (
