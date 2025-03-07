@@ -1,42 +1,42 @@
-import http from 'http';
-import express from 'express';
+import http from "http";
+import express from "express";
 import cors from "cors";
-import { Server } from '@colyseus/core';
-import { WebSocketTransport } from '@colyseus/ws-transport';
-import dotenv from 'dotenv';
+import { Server } from "@colyseus/core";
+import { WebSocketTransport } from "@colyseus/ws-transport";
+import dotenv from "dotenv";
 
 import { matchMaker } from "@colyseus/core";
- 
-matchMaker.controller.getCorsHeaders = function(req) {
+
+import GameRoom from "./GameRoom";
+
+matchMaker.controller.getCorsHeaders = function (req) {
   const allowedOrigins = [
-    'https://pixeldraw-chi.vercel.app', 
-    'https://pixeldrawio-git-main-lukas-projects-5c5eed09.vercel.app', 
-    'https://pixeldraw-n0eipjitj-lukas-projects-5c5eed09.vercel.app', 
-    'https://pixeldrawio-lukas-projects-5c5eed09.vercel.app', 
-    'http://localhost:3000'
+    "https://pixeldraw-chi.vercel.app",
+    "https://pixeldrawio-git-main-lukas-projects-5c5eed09.vercel.app",
+    "https://pixeldraw-n0eipjitj-lukas-projects-5c5eed09.vercel.app",
+    "https://pixeldrawio-lukas-projects-5c5eed09.vercel.app",
+    "http://localhost:3000",
   ];
-  
-  const origin = req.headers.origin || '';  // Falls undefined, dann leerer String
+
+  const origin = req.headers.origin || ""; // Falls undefined, dann leerer String
 
   console.log("CORS request from origin:", origin);
 
   if (allowedOrigins.includes(origin)) {
     return {
-      'Access-Control-Allow-Origin': origin,
-      'Access-Control-Allow-Credentials': 'true',
-      'Vary': 'Origin',
-      'X-Debug-Origin': origin || 'No-Origin' // Falls undefined, dann 'No-Origin'
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Credentials": "true",
+      Vary: "Origin",
+      "X-Debug-Origin": origin || "No-Origin", // Falls undefined, dann 'No-Origin'
     };
   }
 
   return {
-    'X-Debug-Origin': origin || 'No-Origin'  // Verhindert Fehler
+    "X-Debug-Origin": origin || "No-Origin", // Verhindert Fehler
   };
 };
 
 dotenv.config();
-
-import Lobby from "./MyRoom"
 
 const app = express();
 const port = Number(process.env.PORT);
@@ -49,7 +49,7 @@ const gameServer = new Server({
   transport: new WebSocketTransport({ server: server }),
 });
 
-gameServer.define('lobby', Lobby).filterBy(['public']);
+gameServer.define("room", GameRoom).filterBy(["public"]);
 gameServer.listen(port);
 
 console.log(`Game server started on port ${port}`);

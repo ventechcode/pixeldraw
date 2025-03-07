@@ -5,7 +5,7 @@ import { useRoom } from "@/hooks/useRoom";
 import { getStateCallbacks } from "colyseus.js";
 import ChatBox from "@/components/ChatBox";
 import GameBoard from "@/components/GameBoard";
-import { redirect } from "next/dist/server/api-utils";
+import { useRouter } from "next/navigation";
 
 interface Player {
   name: string;
@@ -17,6 +17,11 @@ export default function Game() {
   const { room, reconnect } = useRoom();
   const [players, setPlayers] = useState<Map<string, Player>>();
   const [leader, setLeader] = useState<boolean>(false);
+  const [time, setTime] = useState<number>(0);
+  const [drawerSessionId, setDrawerSessionId] = useState<string>("");
+  const [isDrawing, setIsDrawing] = useState<boolean>(false);
+
+  const router = useRouter();
 
   useEffect(() => {
     if (room) {
@@ -31,18 +36,34 @@ export default function Game() {
       $(room.state).players.onRemove((player: Player) => {
         setPlayers(new Map(room.state.players));
       });
+
+      $(room.state).listen("time", (value: number) => {
+        setTime(value);
+      });
+
+      // Update to use drawerSessionId instead of drawer
+      $(room.state).listen("drawerSessionId", (value: string) => {
+        console.log("New drawer session ID:", value);
+        setDrawerSessionId(value);
+        setIsDrawing(value === room.sessionId);
+      });
+
+      $(room.state).listen("ended", (ended: boolean) => {
+        if (ended) {
+          console.log("Game ended!");
+          router.push("/");
+        }
+      });
     }
   }, [room]);
 
-  // If no room, allow the user to rejoin
-  // if (!room) {
-  //   return (
-  //     <div>
-  //       <h1>⚠️ NO CONNECTION </h1>
-  //       <button onClick={() => reconnect()}>Reconnect</button>
-  //     </div>
-  //   );
-  // }
+  // Get the current drawer from the players map
+  const getCurrentDrawer = () => {
+    if (!players || !drawerSessionId) return null;
+    return players.get(drawerSessionId);
+  };
+
+  const currentDrawer = getCurrentDrawer();
 
   if (!room) {
     const res = reconnect();
@@ -69,7 +90,18 @@ export default function Game() {
         </ul>
       </div>
       <div className="flex flex-col items-center justify-around border rounded-md w-3/5">
-        <GameBoard />
+        <h1>
+          {currentDrawer
+            ? `${currentDrawer.name} is drawing!`
+            : "Waiting for drawer..."}
+        </h1>
+        <h1>
+          Round: {room?.state.round} / {room?.state.maxRounds}
+        </h1>
+        <h1>Time: {time}</h1>
+        <h1>Word: {room?.state.currentWord}</h1>
+
+        {room?.state.ended ? <h1>Game Ended!</h1> : <GameBoard />}
       </div>
       <ChatBox />
     </div>

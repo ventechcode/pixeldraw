@@ -48,7 +48,7 @@ export default function Home() {
                 });
               } else {
                 // Öffentliche Lobby beitreten oder erstellen
-                room = await client.joinOrCreate("lobby", {
+                room = await client.joinOrCreate("room", {
                   name,
                   public: true,
                 });
@@ -71,7 +71,7 @@ export default function Home() {
               return;
             }
             try {
-              const room = await client.create("lobby", {
+              const room = await client.create("room", {
                 name,
                 public: false,
               });
