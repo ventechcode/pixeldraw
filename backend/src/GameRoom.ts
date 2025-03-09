@@ -42,6 +42,12 @@ class GameRoom extends Room<GameState> {
     }
     this.state.players.set(client.sessionId, player);
     this.broadcast("chat", `${player.name} joined the lobby!`);
+
+    if (this.state.players.size > 1 && this.state.public) {
+      console.log("Starting game in public room!");
+      this.state.started = true;
+      this.initGame();
+    }
   }
 
   async onLeave(client: Client, consented?: boolean) {
@@ -76,7 +82,7 @@ class GameRoom extends Room<GameState> {
     this.currentTurnIndex = Math.floor(Math.random() * this.turnOrder.length);
     // Set the initial drawer.
     const startingSession = this.turnOrder[this.currentTurnIndex];
-    
+
     // CHANGE: Instead of setting the drawer object, set the drawerSessionId
     this.state.drawerSessionId = startingSession;
 
@@ -91,7 +97,10 @@ class GameRoom extends Room<GameState> {
     this.state.currentWord = this.selectRandomWord();
 
     console.log(`Starting round ${this.state.round}`);
-    console.log("Initial drawer is", this.state.players.get(startingSession).name);
+    console.log(
+      "Initial drawer is",
+      this.state.players.get(startingSession).name
+    );
 
     this.startTurnTimer();
   }
@@ -152,10 +161,10 @@ class GameRoom extends Room<GameState> {
 
     // Set the new drawer.
     const newSession = this.turnOrder[this.currentTurnIndex];
-    
+
     // CHANGE: Instead of setting drawer object, set drawerSessionId
     this.state.drawerSessionId = newSession;
-    
+
     const drawerName = this.state.players.get(newSession)?.name;
     console.log("New drawer is", drawerName || "undefined");
 
@@ -187,10 +196,10 @@ class GameRoom extends Room<GameState> {
     // Advance the turn order pointer so the new round starts with the next player.
     this.currentTurnIndex = (this.currentTurnIndex + 1) % this.turnOrder.length;
     const newSession = this.turnOrder[this.currentTurnIndex];
-    
+
     // CHANGE: Instead of setting drawer object, set drawerSessionId
     this.state.drawerSessionId = newSession;
-    
+
     const drawerName = this.state.players.get(newSession)?.name;
     console.log("New drawer is", drawerName || "undefined");
 
@@ -211,6 +220,7 @@ class GameRoom extends Room<GameState> {
 
   endGame() {
     this.state.ended = true;
+    this.disconnect();
     console.log("Game ended!");
   }
 }

@@ -32,8 +32,8 @@ export default function Lobby() {
         setPlayers(new Map(room.state.players));
       });
 
-      room.onMessage("start", () => {
-        router.push("/game");
+      $(room.state).listen("started", (started: boolean) => {
+        if (started) router.push("/game");
       });
     } else {
       checkConnection();

@@ -1,24 +1,26 @@
-export default function GameBoard() {
-    return (
-        <div className="w-1/5 rounded-md border h-full flex flex-col">
-            <h4 className="mb-4 text-lg text-center pt-2">Game Board</h4>
-            <div className="p-4 flex-grow">
-                <div className="space-y-3">
-                    <div className="flex items-start">
-                        <div
-                            className="bg-gray-200 p-3 rounded-lg break-words"
-                            style={{
-                                wordBreak: "break-word",
-                                hyphens: "auto",
-                                width: "fit-content",
-                                maxWidth: "100%",
-                            }}
-                        >
-                            Game board content
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+import Node from "./Node";
+
+export default function GameBoard({ size }: { size: number }) {
+  const drawingColor = "bg-black";
+
+  return (
+    <div
+      className="grid border rounded-md border-black p-0.5"
+      style={{
+        gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,
+      }}
+    >
+      {Array.from({ length: size * size }).map((_, i) => (
+        <Node
+          key={i}
+          className={`${drawingColor} ${
+            i % size == 0 ? "border-l-0" : "border-l"
+          } ${i < size * (size - 1) ? "border-b" : "border-b-0"} ${
+            size === 32 ? "size-6" : size === 64 ? "size-3" : "size-2"
+          } ${i === 0 ? "" : ""}`}
+        />
+      ))}
+    </div>
+  );
 }

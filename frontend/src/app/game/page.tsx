@@ -89,20 +89,7 @@ export default function Game() {
           ))}
         </ul>
       </div>
-      <div className="flex flex-col items-center justify-around border rounded-md w-3/5">
-        <h1>
-          {currentDrawer
-            ? `${currentDrawer.name} is drawing!`
-            : "Waiting for drawer..."}
-        </h1>
-        <h1>
-          Round: {room?.state.round} / {room?.state.maxRounds}
-        </h1>
-        <h1>Time: {time}</h1>
-        <h1>Word: {room?.state.currentWord}</h1>
-
-        {room?.state.ended ? <h1>Game Ended!</h1> : <GameBoard />}
-      </div>
+      <GameBoard size={32} />
       <ChatBox />
     </div>
   );
