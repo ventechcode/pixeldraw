@@ -1,50 +1,57 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import { Input } from "./ui/input"
-import { ScrollArea } from "./ui/scroll-area"
-import { useRoom } from "@/hooks/useRoom"
+import { useEffect, useRef, useState } from "react";
+import { Input } from "./ui/input";
+import { ScrollArea } from "./ui/scroll-area";
+import { useRoom } from "@/hooks/useRoom";
+import { getStateCallbacks } from "colyseus.js";
 
 export default function ChatBox() {
-  const [messages, setMessages] = useState<string[]>([])
-  const [message, setMessage] = useState("")
-  const { room } = useRoom()
+  const [messages, setMessages] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+  const { room } = useRoom();
 
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const sendMessage = () => {
     if (room && message) {
-      room.send("chat", message)
-      setMessage("")
+      room.send("chat", message);
+      setMessage("");
     }
-  }
+  };
 
   useEffect(() => {
     if (room) {
-      room.onMessage("chat", (message: string) => {
-        console.log("Chat message received:", message)
-        setMessages((prevMessages) => [...prevMessages, message])
-      })
+      setMessages(room.state.chatMessages);
+
+      const $ = getStateCallbacks(room);
+
+      $(room.state).chatMessages.onChange((val: any) => {
+        setMessages([...room.state.chatMessages]);
+      });
     }
-  }, [room])
+  }, [room]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector("[data-radix-scroll-area-viewport]")
+      const scrollContainer = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
       if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [messages])
+  }, [messages]);
 
   return (
-    <div className="w-1/5 rounded-md border h-full flex flex-col">
+    <div className="w-1/5 border h-full flex flex-col">
       <h4 className="mb-4 text-lg text-center pt-2">Chat</h4>
       <ScrollArea className="h-5/6" ref={scrollAreaRef}>
         <div
           className="absolute left-0 right-0 h-8 z-10 pointer-events-none"
           style={{
-            background: "linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",
+            background:
+              "linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",
           }}
           aria-hidden="true"
         ></div>
@@ -70,23 +77,23 @@ export default function ChatBox() {
         <div
           className="absolute bottom-0 left-0 right-0 h-8 z-10 pointer-events-none"
           style={{
-            background: "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",
+            background:
+              "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",
           }}
           aria-hidden="true"
         ></div>
       </ScrollArea>
       <Input
-        className="mt-2 h-14"
+        className="mt-4 h-14 border-t-2 text-5xl font-semibold rounded-none"
         placeholder="Type your guess here..."
         onKeyDown={(e) => {
           if (e.key === "Enter") {
-            sendMessage()
+            sendMessage();
           }
         }}
         onChange={(e) => setMessage(e.target.value)}
         value={message}
       />
     </div>
-  )
+  );
 }
-

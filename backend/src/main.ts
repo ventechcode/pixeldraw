@@ -20,8 +20,6 @@ matchMaker.controller.getCorsHeaders = function (req) {
 
   const origin = req.headers.origin || ""; // Falls undefined, dann leerer String
 
-  console.log("CORS request from origin:", origin);
-
   if (allowedOrigins.includes(origin)) {
     return {
       "Access-Control-Allow-Origin": origin,
@@ -48,6 +46,9 @@ const server = http.createServer(app);
 const gameServer = new Server({
   transport: new WebSocketTransport({ server: server }),
 });
+
+import { Encoder } from "@colyseus/schema";
+Encoder.BUFFER_SIZE = 72 * 1024; // 72 KB
 
 gameServer.define("room", GameRoom).filterBy(["public"]);
 gameServer.listen(port);

@@ -1,6 +1,7 @@
 import { Client, Delayed, Room } from "@colyseus/core";
 import { GameState } from "./GameState"; // adjust path if needed
 import Player from "./player";
+import { Node } from "./Node";
 
 class GameRoom extends Room<GameState> {
   state = new GameState();
@@ -11,23 +12,41 @@ class GameRoom extends Room<GameState> {
   private currentTurnIndex: number = 0;
 
   onCreate(options: any) {
+    // Initialize state with options
     this.setPrivate(!options.public);
     this.state.public = options.public;
-    this.autoDispose = false;
 
-    // Chat messages.
+    // Chat messages
     this.onMessage("chat", (client, message) => {
       const player = this.state.players.get(client.sessionId);
-      this.broadcast("chat", `${player.name}: ${message}`);
+
+      if (
+        message.toLowerCase() == this.state.currentWord.toLowerCase() &&
+        client.sessionId != this.state.drawerSessionId
+      ) {
+        player.guessed = true;
+        this.state.chatMessages.push(player.name + " guessed the word!");
+      } else {
+        this.state.chatMessages.push(player.name + ": " + message);
+      }
     });
 
-    // Start the game when the leader sends "start".
+    // Start the game when the leader sends start command
     this.onMessage("start", (client) => {
       const player = this.state.players.get(client.sessionId);
       if (player.leader) {
         this.state.started = true;
-        this.broadcast("start");
         this.initGame();
+      }
+    });
+
+    // Handle drawing event
+    this.onMessage("draw", (client, message) => {
+      if (client.sessionId == this.state.drawerSessionId) {
+        this.state.board[message.index] = new Node(
+          message.color,
+          message.index
+        );
       }
     });
   }
@@ -41,10 +60,9 @@ class GameRoom extends Room<GameState> {
       player.leader = true;
     }
     this.state.players.set(client.sessionId, player);
-    this.broadcast("chat", `${player.name} joined the lobby!`);
+    this.state.chatMessages.push(`${player.name} joined.`);
 
     if (this.state.players.size > 1 && this.state.public) {
-      console.log("Starting game in public room!");
       this.state.started = true;
       this.initGame();
     }
@@ -54,7 +72,7 @@ class GameRoom extends Room<GameState> {
     const player = this.state.players.get(client.sessionId);
     this.state.players.delete(client.sessionId);
 
-    // If the leaving player was leader, assign leader role to another.
+    // If the leaving player was leader, assign leader role to another. (maybe randomize this?)
     if (player.leader && this.state.players.size > 0) {
       player.leader = false;
       const newLeader = Array.from(this.state.players.values())[0];
@@ -62,13 +80,13 @@ class GameRoom extends Room<GameState> {
     }
 
     console.log(player.name, client.sessionId, "left the lobby!");
-    this.broadcast("chat", `${player.name} left the lobby!`);
+    this.state.chatMessages.push(`${player.name} left.`);
 
     // Allow reconnection.
     const reconnectedClient = await this.allowReconnection(client, 60);
     console.log(player.name, reconnectedClient.sessionId, "reconnected!");
     this.state.players.set(reconnectedClient.sessionId, player);
-    this.broadcast("chat", `${player.name} reconnected!`);
+    this.state.chatMessages.push(`${player.name} reconnected.`);
   }
 
   onDispose() {
@@ -91,6 +109,9 @@ class GameRoom extends Room<GameState> {
       player.drawed = false;
     });
 
+    // Empty chat
+    this.state.chatMessages.clear();
+
     // Initialize round and timer.
     this.state.round = 1;
     this.state.time = this.state.maxTime;
@@ -102,6 +123,11 @@ class GameRoom extends Room<GameState> {
       this.state.players.get(startingSession).name
     );
 
+    this.state.chatMessages.push(`Starting round ${this.state.round}`);
+    this.state.chatMessages.push(
+      this.state.players.get(startingSession).name + " is drawing!"
+    );
+
     this.startTurnTimer();
   }
 
@@ -109,16 +135,16 @@ class GameRoom extends Room<GameState> {
     // Ensure the clock is started.
     this.clock.start();
 
-    // Decrement time every second.
-    this.delayedInterval = this.clock.setInterval(() => {
-      this.state.time--;
-    }, 1000);
-
     // When time expires, clear the interval and advance turn.
     this.clock.setTimeout(() => {
       this.delayedInterval.clear();
       this.nextTurn();
-    }, this.state.maxTime * 1000);
+    }, (this.state.maxTime + 1) * 1000);
+
+    // Decrement time every second.
+    this.delayedInterval = this.clock.setInterval(() => {
+      this.state.time--;
+    }, 1000);
   }
 
   nextTurn() {
@@ -129,6 +155,11 @@ class GameRoom extends Room<GameState> {
       currentPlayer.drawed = true;
       console.log(currentPlayer.name, "finished drawing");
     }
+
+    // Reset game board
+    this.state.board.forEach((node) => {
+      node.color = "bg-transparent";
+    });
 
     // Check if all players in this round have drawn.
     const allDrawn = this.turnOrder.every((sessionId) => {
@@ -167,6 +198,7 @@ class GameRoom extends Room<GameState> {
 
     const drawerName = this.state.players.get(newSession)?.name;
     console.log("New drawer is", drawerName || "undefined");
+    this.state.chatMessages.push(`${drawerName} is drawing!`);
 
     // Set a new word and reset the timer.
     this.state.currentWord = this.selectRandomWord();
@@ -187,6 +219,7 @@ class GameRoom extends Room<GameState> {
     }
 
     console.log(`Starting round ${this.state.round}`);
+    this.state.chatMessages.push(`Starting round ${this.state.round}`);
 
     // Reset draw status for all players.
     this.state.players.forEach((player) => {
@@ -202,6 +235,7 @@ class GameRoom extends Room<GameState> {
 
     const drawerName = this.state.players.get(newSession)?.name;
     console.log("New drawer is", drawerName || "undefined");
+    this.state.chatMessages.push(`${drawerName} is drawing!`);
 
     // Reset time and choose a new word.
     this.state.time = this.state.maxTime;
@@ -219,9 +253,14 @@ class GameRoom extends Room<GameState> {
   }
 
   endGame() {
-    this.state.ended = true;
-    this.disconnect();
-    console.log("Game ended!");
+    this.state.chatMessages.push("Game ended.");
+    this.state.chatMessages.push("Room will close soon, thanks for playing!");
+
+    // Set a 5-minute timer before disconnecting all clients.
+    this.clock.setTimeout(() => {
+      this.state.ended = true;
+      this.disconnect();
+    }, 60000 * 5);
   }
 }
 
