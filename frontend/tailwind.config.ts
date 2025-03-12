@@ -8,10 +8,22 @@ const {
 module.exports = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   darkMode: "class",
-  theme: {},
+  presets: [require("@catppuccin/tailwindcss")],
+  theme: {
+    screens: {
+      xs: "400px",
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+    },
+  },
   plugins: [
     // rest of the code
     addVariablesForColors,
+    require("@catppuccin/tailwindcss")({
+      prefix: "ctp",
+    }),
   ],
 };
 

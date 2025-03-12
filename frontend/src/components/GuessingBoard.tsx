@@ -12,7 +12,7 @@ export default function GuessingBoard({ size }: { size: number }) {
 
   useEffect(() => {
     if (room) {
-      setBoard([...room.state.board]);
+      if (room.state.board) setBoard([...room.state.board]);
 
       const $ = getStateCallbacks(room!);
 

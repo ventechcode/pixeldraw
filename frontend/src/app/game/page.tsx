@@ -62,8 +62,12 @@ export default function Game() {
   }, [room]);
 
   if (!room) {
-    const res = reconnect();
-    console.log(res);
+    return (
+      <div>
+        <h1>⚠️ NO CONNECTION </h1>
+        <button onClick={() => reconnect()}>Reconnect</button>
+      </div>
+    );
   }
 
   return (
@@ -80,7 +84,7 @@ export default function Game() {
         <h1 className="text-center">
           {isDrawing
             ? "Word: " + room?.state.currentWord
-            : "Word length: " + room?.state.currentWord.length}
+            : "Word length: " + room?.state.currentWord?.length}
         </h1>
         <h1 className="text-center">Time left: {time.toString()}</h1>
         <div className="border px-8 h-full">

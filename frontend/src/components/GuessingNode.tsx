@@ -1,5 +1,4 @@
-import { useRoom } from "@/hooks/useRoom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export default function GuessingNode({
   className,
@@ -10,5 +9,13 @@ export default function GuessingNode({
 }) {
   useEffect(() => {}, [color]);
 
-  return <button className={`${className} ${color} border`} />;
+  return (
+    <button
+      className={`${className} ${
+        color != "bg-transparent"
+          ? "border-0 border-t-0 " + color
+          : "border bg-transparent"
+      }`}
+    />
+  );
 }

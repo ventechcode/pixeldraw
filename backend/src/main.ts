@@ -4,6 +4,7 @@ import cors from "cors";
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import dotenv from "dotenv";
+import { monitor } from "@colyseus/monitor";
 
 import { matchMaker } from "@colyseus/core";
 
@@ -41,6 +42,7 @@ const port = Number(process.env.PORT);
 
 app.use(cors());
 app.use(express.json());
+app.use("/monitor", monitor());
 
 const server = http.createServer(app);
 const gameServer = new Server({

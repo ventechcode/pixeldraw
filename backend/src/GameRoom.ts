@@ -2,6 +2,7 @@ import { Client, Delayed, Room } from "@colyseus/core";
 import { GameState } from "./GameState"; // adjust path if needed
 import Player from "./player";
 import { Node } from "./Node";
+import { Settings } from "./Settings";
 
 class GameRoom extends Room<GameState> {
   state = new GameState();
@@ -15,6 +16,8 @@ class GameRoom extends Room<GameState> {
     // Initialize state with options
     this.setPrivate(!options.public);
     this.state.public = options.public;
+    this.autoDispose = true;
+    this.maxClients = this.state.settings.maxPlayers;
 
     // Chat messages
     this.onMessage("chat", (client, message) => {
@@ -34,7 +37,7 @@ class GameRoom extends Room<GameState> {
     // Start the game when the leader sends start command
     this.onMessage("start", (client) => {
       const player = this.state.players.get(client.sessionId);
-      if (player.leader) {
+      if (player.leader && this.state.players.size > 1) {
         this.state.started = true;
         this.initGame();
       }
@@ -47,6 +50,23 @@ class GameRoom extends Room<GameState> {
           message.color,
           message.index
         );
+      }
+    });
+
+    // Handle setting change
+    this.onMessage("set_setting", (client, message) => {
+      const player = this.state.players.get(client.sessionId);
+      if (this.state.public || !player?.leader || this.state.started) {
+        return; // Only leader in private lobbies can change settings before start
+      }
+      const { key, value } = message;
+      const newSettings = new Settings().assign(this.state.settings);
+      if (key in newSettings) {
+        newSettings[key] = value;
+        this.state.settings = newSettings; // Assign the new settings object
+        if (key === "maxPlayers") {
+          this.maxClients = value;
+        }
       }
     });
   }
@@ -114,7 +134,7 @@ class GameRoom extends Room<GameState> {
 
     // Initialize round and timer.
     this.state.round = 1;
-    this.state.time = this.state.maxTime;
+    this.state.time = this.state.settings.roundLength;
     this.state.currentWord = this.selectRandomWord();
 
     console.log(`Starting round ${this.state.round}`);
@@ -139,7 +159,7 @@ class GameRoom extends Room<GameState> {
     this.clock.setTimeout(() => {
       this.delayedInterval.clear();
       this.nextTurn();
-    }, (this.state.maxTime + 1) * 1000);
+    }, (this.state.settings.roundLength + 1) * 1000);
 
     // Decrement time every second.
     this.delayedInterval = this.clock.setInterval(() => {
@@ -202,7 +222,7 @@ class GameRoom extends Room<GameState> {
 
     // Set a new word and reset the timer.
     this.state.currentWord = this.selectRandomWord();
-    this.state.time = this.state.maxTime;
+    this.state.time = this.state.settings.roundLength;
 
     // Restart the turn timer.
     this.startTurnTimer();
@@ -213,7 +233,7 @@ class GameRoom extends Room<GameState> {
     this.state.round++;
 
     // Check if game should end.
-    if (this.state.round > this.state.maxRounds) {
+    if (this.state.round > this.state.settings.rounds) {
       this.endGame();
       return;
     }
@@ -238,7 +258,7 @@ class GameRoom extends Room<GameState> {
     this.state.chatMessages.push(`${drawerName} is drawing!`);
 
     // Reset time and choose a new word.
-    this.state.time = this.state.maxTime;
+    this.state.time = this.state.settings.roundLength;
     this.state.currentWord = this.selectRandomWord();
 
     // Start the timer for the new round.

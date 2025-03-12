@@ -22,7 +22,7 @@ export default function ChatBox() {
 
   useEffect(() => {
     if (room) {
-      setMessages(room.state.chatMessages);
+      if (room.state.chatMessages) setMessages(room.state.chatMessages);
 
       const $ = getStateCallbacks(room);
 
@@ -44,11 +44,11 @@ export default function ChatBox() {
   }, [messages]);
 
   return (
-    <div className="w-1/5 border h-full flex flex-col">
+    <div className="w-1/5 border h-3/4 flex flex-col z-10 bg-white">
       <h4 className="mb-4 text-lg text-center pt-2">Chat</h4>
       <ScrollArea className="h-5/6" ref={scrollAreaRef}>
         <div
-          className="absolute left-0 right-0 h-8 z-10 pointer-events-none"
+          className="absolute left-0 right-0 h-4 z-10 pointer-events-none"
           style={{
             background:
               "linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",
@@ -75,7 +75,7 @@ export default function ChatBox() {
           </div>
         </div>
         <div
-          className="absolute bottom-0 left-0 right-0 h-8 z-10 pointer-events-none"
+          className="absolute bottom-0 left-0 right-0 h-4 z-10 pointer-events-none"
           style={{
             background:
               "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",

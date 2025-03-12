@@ -17,22 +17,24 @@ export default function Home() {
     <div className="h-screen relative w-full overflow-hidden bg-slate-900 flex flex-col items-center justify-center">
       <div className="absolute inset-0 w-full h-full bg-slate-900 z-20 [mask-image:radial-gradient(transparent,white)] pointer-events-none" />
       <BoxesContainer />
-      <h1 className="text-center text-9xl text-white/90 z-10">PixelDraw.io</h1>
+      <h1 className="text-center text-9xl text-white/90 z-10 font-bold">
+        PixelDraw.io
+      </h1>
       <div className="flex flex-col space-y-4 z-10 w-1/5 mt-8">
         <Input
           type="text"
-          className="bg-slate-700 border-0 text-white h-11 text-center"
+          className="bg-slate-700 border-0 text-white h-11 text-center font-light"
           placeholder="Enter your name"
           onChange={(e) => setName(e.target.value)}
         />
         <Input
           type="text"
-          className="bg-slate-700 border-0 text-white text-center"
+          className="bg-slate-700 border-0 text-white text-center font-light"
           placeholder="Enter room ID (optional)"
           onChange={(e) => setLobbyId(e.target.value)}
         />
         <Button
-          className="bg-[#a6e3a1] hover:bg-[#a6e3a1]/90 hover:cursor-pointer h-11 font-semibold text-xl"
+          className="bg-[#a6e3a1] hover:bg-[#a6e3a1]/90 hover:cursor-pointer h-11 font-bold text-2xl"
           onClick={async () => {
             if (!name) {
               alert("Please enter your name");
@@ -57,7 +59,7 @@ export default function Home() {
               setRoom(room);
               router.push(`/lobby`);
             } catch (e) {
-              console.error("join error", e);
+              alert();
             }
           }}
         >

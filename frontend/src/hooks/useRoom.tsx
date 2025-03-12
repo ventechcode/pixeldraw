@@ -56,6 +56,7 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
       const storedData = localStorage.getItem(`reconnectionData_${tabId}`);
       if (!storedData) return false;
       const { reconnectionToken } = JSON.parse(storedData);
+      console.log("reconnectionToken", reconnectionToken);
       if (!reconnectionToken) return false;
 
       try {

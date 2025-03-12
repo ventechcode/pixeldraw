@@ -5,6 +5,8 @@ import { useRoom } from "@/hooks/useRoom";
 import { getStateCallbacks } from "colyseus.js";
 import ChatBox from "@/components/ChatBox";
 import { useRouter } from "next/navigation";
+import { BoxesContainer } from "@/components/ui/background-boxes";
+import LobbySettings from "@/components/LobbySettings"; // Adjust the import path as needed
 
 interface Player {
   name: string;
@@ -35,32 +37,24 @@ export default function Lobby() {
       $(room.state).listen("started", (started: boolean) => {
         if (started) router.push("/game");
       });
-    } else {
-      checkConnection();
     }
   }, [room]);
 
-  // If no room, allow the user to rejoin
-  // if (!room) {
-  //   return (
-  //     <div>
-  //       <h1>⚠️ NO CONNECTION </h1>
-  //       <button onClick={() => reconnect()}>Reconnect</button>
-  //     </div>
-  //   );
-  // }
-
-  const checkConnection = async () => {
-    const res = await reconnect();
-    if (!res) {
-      router.push("/");
-    }
-  };
+  if (!room) {
+    return (
+      <div>
+        <h1>⚠️ NO CONNECTION </h1>
+        <button onClick={() => reconnect()}>Reconnect</button>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full flex flex-row justify-around gap-4 px-16 h-3/4">
-      <div className="border rounded-md px-8">
-        <h1 className="py-4">🎮 Lobby {room?.roomId}</h1>
+    <div className="h-screen relative w-full overflow-hidden bg-slate-900 flex flex-row items-center justify-evenly text-[#DDE6ED]">
+      <div className="absolute inset-0 w-full h-full bg-slate-900 z-0[mask-image:radial-gradient(transparent,white)] pointer-events-none" />
+      <BoxesContainer />
+      <div className="px-8 z-10 bg-[#27374D] rounded-md h-3/4 w-1/6 shadow-lg">
+        <h1 className="py-4">🎮 Scoreboard {room?.roomId}</h1>
         <ul>
           {Array.from(players?.values() || []).map((player, i) => (
             <li key={i}>
@@ -76,21 +70,7 @@ export default function Lobby() {
           ))}
         </ul>
       </div>
-      <div className="flex flex-col items-center justify-around border rounded-md w-3/5">
-        <h1>🎨 Game</h1>
-        <button
-          disabled={!leader}
-          className={`${
-            leader
-              ? "bg-green-500 hover:bg-green-700/90 hover:cursor-pointer"
-              : "bg-gray-300"
-          } 
-          text-white font-bold py-2 px-4 rounded`}
-          onClick={() => room?.send("start")}
-        >
-          {leader ? "Start Game" : "Waiting for Leader"}
-        </button>
-      </div>
+      <LobbySettings leader={leader} />
       <ChatBox />
     </div>
   );
