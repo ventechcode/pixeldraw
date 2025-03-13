@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useRoom } from "@/hooks/useRoom";
 import { BoxesContainer } from "@/components/ui/background-boxes";
+import { useSearchParams } from "next/navigation";
 
 export default function Home() {
-  const [lobbyId, setLobbyId] = useState("");
+  const searchParams = useSearchParams();
+  const [lobbyId, setLobbyId] = useState(searchParams.get("join"));
   const [name, setName] = useState("");
   const router = useRouter();
   const { setRoom, client } = useRoom();
@@ -31,6 +33,7 @@ export default function Home() {
           type="text"
           className="bg-slate-700 border-0 text-white text-center font-light"
           placeholder="Enter room ID (optional)"
+          value={lobbyId ? lobbyId : ""}
           onChange={(e) => setLobbyId(e.target.value)}
         />
         <Button

@@ -44,14 +44,14 @@ export default function ChatBox() {
   }, [messages]);
 
   return (
-    <div className="w-1/5 border h-3/4 flex flex-col z-10 bg-white">
+    <div className="w-1/5 rounded-none h-3/4 flex flex-col z-10 bg-[#27374D]">
       <h4 className="mb-4 text-lg text-center pt-2">Chat</h4>
       <ScrollArea className="h-5/6" ref={scrollAreaRef}>
         <div
           className="absolute left-0 right-0 h-4 z-10 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",
+              "linear-gradient(to top, rgba(39, 55, 77, 0) 0%, rgba(39, 55, 77, 1) 100%)",
           }}
           aria-hidden="true"
         ></div>
@@ -60,7 +60,7 @@ export default function ChatBox() {
             {messages.map((message, i) => (
               <div key={i} className="flex items-start">
                 <div
-                  className="bg-gray-200 p-3 rounded-lg break-words"
+                  className="bg-[#9DB2BF] px-3 py-2 rounded-lg break-words"
                   style={{
                     wordBreak: "break-word",
                     hyphens: "auto",
@@ -78,13 +78,13 @@ export default function ChatBox() {
           className="absolute bottom-0 left-0 right-0 h-4 z-10 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%)",
+              "linear-gradient(to bottom, rgba(39, 55, 77, 0) 0%, rgba(39, 55, 77, 1) 100%)",
           }}
           aria-hidden="true"
         ></div>
       </ScrollArea>
       <Input
-        className="mt-4 h-14 border-t-2 text-5xl font-semibold rounded-none"
+        className="mt-4 h-14 border-2 text-5xl font-semibold border-[#526D82] rounded-none focus-visible:ring-offset-0 focus-visible:ring-0 "
         placeholder="Type your guess here..."
         onKeyDown={(e) => {
           if (e.key === "Enter") {

@@ -17,6 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useRoom } from "@/hooks/useRoom";
 import { getStateCallbacks } from "colyseus.js";
+import { FaLink } from "react-icons/fa";
 
 interface LobbySettingsProps {
   leader: boolean;
@@ -39,19 +40,19 @@ function LobbySettings({ leader }: LobbySettingsProps) {
   }, [room]);
 
   return (
-    <Card className="w-3/5 h-3/4 bg-[#526D82] z-20 border-none rounded-none">
+    <Card className="w-3/5 h-3/4 bg-[#526D82] z-20 border-none rounded-none text-[#DDE6ED] px-24">
       <CardHeader>
         <CardTitle className="text-xl text-center">
           Private Lobby {room?.roomId}
         </CardTitle>
-        <CardDescription className="text-sm text-center">
-          Waiting...
+        <CardDescription className="text-md text-center">
+          Game Settings
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Number of Rounds */}
-        <div className="flex flex-col space-y-1">
-          <label className="text-sm font-medium">Number of Rounds</label>
+        <div className="flex flex-row items-center justify-between space-x-4 w-full">
+          <label className="text-lg">Number of Rounds</label>
           <Select
             value={settings.rounds.toString()}
             onValueChange={(value: any) =>
@@ -62,7 +63,7 @@ function LobbySettings({ leader }: LobbySettingsProps) {
             }
             disabled={room?.state.public || !leader}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-64">
               <SelectValue placeholder="Select number of rounds" />
             </SelectTrigger>
             <SelectContent>
@@ -75,8 +76,8 @@ function LobbySettings({ leader }: LobbySettingsProps) {
         </div>
 
         {/* Max Players */}
-        <div className="flex flex-col space-y-1">
-          <label className="text-sm font-medium">Max Players</label>
+        <div className="flex flex-row items-center justify-between space-x-4">
+          <label className="text-lg">Max Players</label>
           <Select
             value={settings.maxPlayers.toString()}
             onValueChange={(value: any) =>
@@ -87,11 +88,11 @@ function LobbySettings({ leader }: LobbySettingsProps) {
             }
             disabled={!leader}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Select max players" />
+            <SelectTrigger className="w-64">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 9 }, (_, i) => i + 2).map((num) => (
+              {Array.from({ length: 11 }, (_, i) => i + 2).map((num) => (
                 <SelectItem key={num} value={num.toString()}>
                   {num}
                 </SelectItem>
@@ -102,7 +103,7 @@ function LobbySettings({ leader }: LobbySettingsProps) {
 
         {/* Round Length */}
         <div className="flex flex-col space-y-1">
-          <label className="text-sm font-medium">Round Length (seconds)</label>
+          <label className="text-lg">Round Length (seconds)</label>
           <Slider
             value={[settings.roundLength]}
             onValueChange={(value: any) =>
@@ -113,20 +114,30 @@ function LobbySettings({ leader }: LobbySettingsProps) {
             step={30}
             disabled={!leader}
           />
-          <span className="text-sm text-gray-600">
+          <span className="text-md text-gray-700">
             {settings.roundLength} seconds
           </span>
         </div>
 
         {/* Buttons */}
-        <div className="flex flex-row justify-items-stretch mt-4">
+        <div className="flex flex-row justify-between mt-4">
           {!room?.state.public && (
-            <Button variant="outline" onClick={() => console.log("Invite")}>
-              Invite
+            <Button
+              variant="outline"
+              className="cursor-pointer"
+              onClick={() =>
+                navigator.clipboard.writeText(
+                  window.location.origin + `?join=${room?.roomId}`
+                )
+              }
+            >
+              <FaLink />
+              Copy Invite Link
             </Button>
           )}
           <Button
             disabled={!leader || room?.state.players.size < 2}
+            className="cursor-pointer"
             onClick={() => {
               if (leader && room?.state.players.size > 1) {
                 room?.send("start");
@@ -139,7 +150,7 @@ function LobbySettings({ leader }: LobbySettingsProps) {
               ? "Waiting for players..."
               : leader
               ? "Start Game"
-              : "Waiting for Leader"}
+              : "Waiting for Leader..."}
           </Button>
         </div>
       </CardContent>
