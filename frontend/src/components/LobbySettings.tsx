@@ -17,6 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useRoom } from "@/hooks/useRoom";
 import { getStateCallbacks } from "colyseus.js";
+
 import { FaLink } from "react-icons/fa";
 
 interface LobbySettingsProps {

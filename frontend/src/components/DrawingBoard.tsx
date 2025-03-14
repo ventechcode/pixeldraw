@@ -14,7 +14,7 @@ export default function DrawingBoard({ size }: { size: number }) {
 
   return (
     <div
-      className="grid border"
+      className="grid border h-full w-full"
       style={{
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,

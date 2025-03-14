@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useRoom } from "@/hooks/useRoom";
 import { BoxesContainer } from "@/components/ui/background-boxes";
 import { useSearchParams } from "next/navigation";
+import { LineShadowText } from "@/components/magicui/line-shadow-text";
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -19,8 +20,10 @@ export default function Home() {
     <div className="h-screen relative w-full overflow-hidden bg-slate-900 flex flex-col items-center justify-center">
       <div className="absolute inset-0 w-full h-full bg-slate-900 z-20 [mask-image:radial-gradient(transparent,white)] pointer-events-none" />
       <BoxesContainer />
-      <h1 className="text-center text-9xl text-white/90 z-10 font-bold">
-        PixelDraw.io
+      <h1 className="text-balance text-5xl font-semibold leading-none tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl">
+        <LineShadowText className="bold" shadowColor="white">
+          PixelDraw.io
+        </LineShadowText>
       </h1>
       <div className="flex flex-col space-y-4 z-10 w-1/5 mt-8">
         <Input

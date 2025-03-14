@@ -6,8 +6,8 @@ import { getStateCallbacks } from "colyseus.js";
 import ChatBox from "@/components/ChatBox";
 import { useRouter } from "next/navigation";
 import { BoxesContainer } from "@/components/ui/background-boxes";
-import LobbySettings from "@/components/LobbySettings"; // Adjust the import path as needed
-import { FaLink } from "react-icons/fa";
+import LobbySettings from "@/components/LobbySettings";
+import PlayerList from "@/components/PlayerList";
 
 interface Player {
   name: string;
@@ -54,22 +54,12 @@ export default function Lobby() {
     <div className="h-screen relative w-full overflow-hidden bg-slate-900 flex flex-row items-center justify-evenly text-[#DDE6ED]">
       <div className="absolute inset-0 w-full h-full bg-slate-900 z-0[mask-image:radial-gradient(transparent,white)] pointer-events-none" />
       <BoxesContainer />
-      <div className="px-8 z-10 bg-[#27374D] h-3/4 w-1/6 shadow-lg">
-        <h1 className="py-4">Scoreboard</h1>
-        <ul>
-          {Array.from(players?.values() || []).map((player, i) => (
-            <li key={i}>
-              👤{" "}
-              {player.sessionId === room?.sessionId
-                ? player.leader
-                  ? `${player.name} (You) (Leader)`
-                  : player.name + " (You)"
-                : player.leader
-                ? `${player.name} (Leader)`
-                : player.name}
-            </li>
-          ))}
-        </ul>
+      <div className="flex flex-col space-y-4 z-10 h-3/4 w-1/6">
+        <PlayerList
+          players={players ? players : new Map<string, any>()}
+          room={room}
+          isDrawing={false}
+        />
       </div>
       <LobbySettings leader={leader} />
       <ChatBox />

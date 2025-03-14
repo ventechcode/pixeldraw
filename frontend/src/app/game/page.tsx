@@ -7,6 +7,8 @@ import ChatBox from "@/components/ChatBox";
 import { useRouter } from "next/navigation";
 import DrawingBoard from "@/components/DrawingBoard";
 import GuessingBoard from "@/components/GuessingBoard";
+import { BoxesContainer } from "@/components/ui/background-boxes";
+import PlayerList from "@/components/PlayerList";
 
 interface Player {
   name: string;
@@ -71,10 +73,12 @@ export default function Game() {
   }
 
   return (
-    <div className="w-full flex flex-row justify-around gap-4 px-16 h-3/4">
-      <div className="flex flex-col space-y-4">
+    <div className="h-screen relative w-full overflow-hidden bg-slate-900 flex flex-row items-center justify-evenly text-[#DDE6ED]">
+      <div className="absolute inset-0 w-full h-full bg-slate-900 z-0[mask-image:radial-gradient(transparent,white)] pointer-events-none" />
+      <BoxesContainer />
+      <div className="flex flex-col space-y-4 z-10 h-3/4 w-1/5">
         <h1 className="text-center">
-          Round {room?.state.round}/{room?.state.maxRounds}
+          Round {room?.state.round}/{room?.state?.settings?.rounds}
         </h1>
         <h1 className="text-center">
           {isDrawing
@@ -87,25 +91,15 @@ export default function Game() {
             : "Word length: " + room?.state.currentWord?.length}
         </h1>
         <h1 className="text-center">Time left: {time.toString()}</h1>
-        <div className="border px-8 h-full">
-          <h1 className="py-4">🎮 Lobby {room?.roomId}</h1>
-          <ul>
-            {Array.from(players?.values() || []).map((player, i) => (
-              <li key={i}>
-                👤{" "}
-                {player.sessionId === room?.sessionId
-                  ? player.leader
-                    ? `${player.name} (You) (Leader)`
-                    : player.name + " (You)"
-                  : player.leader
-                  ? `${player.name} (Leader)`
-                  : player.name}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PlayerList
+          players={players ? players : new Map<string, any>()}
+          room={room}
+          isDrawing={isDrawing}
+        />
       </div>
-      {isDrawing ? <DrawingBoard size={32} /> : <GuessingBoard size={32} />}
+      <div className="z-10 bg-white">
+        {isDrawing ? <DrawingBoard size={32} /> : <GuessingBoard size={32} />}
+      </div>
       <ChatBox />
     </div>
   );
