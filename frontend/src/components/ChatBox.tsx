@@ -7,7 +7,7 @@ import { useRoom } from "@/hooks/useRoom";
 import { getStateCallbacks } from "colyseus.js";
 
 export default function ChatBox() {
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<any>([]);
   const [message, setMessage] = useState("");
   const { room } = useRoom();
 
@@ -57,7 +57,7 @@ export default function ChatBox() {
         ></div>
         <div className="p-4 flex-grow">
           <div className="space-y-3">
-            {messages.map((message, i) => (
+            {messages.map((msg: any, i: any) => (
               <div key={i} className="flex items-start">
                 <div
                   className="bg-[#9DB2BF] px-3 py-2 rounded-lg break-words"
@@ -68,7 +68,16 @@ export default function ChatBox() {
                     maxWidth: "100%",
                   }}
                 >
-                  {message}
+                  {room?.state.players.get(room.sessionId)?.guessed ||
+                  room?.sessionId === room?.state.drawerSessionId ? (
+                    room?.state.players.get(msg.sessionId)?.guessed ? (
+                      <p className="text-red-500">{msg.message}</p>
+                    ) : (
+                      <p>{msg.message}</p>
+                    )
+                  ) : room?.state.players.get(msg.sessionId)?.guessed ? null : (
+                    <p>{msg.message}</p>
+                  )}
                 </div>
               </div>
             ))}

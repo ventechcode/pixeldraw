@@ -1,12 +1,13 @@
 import { Schema, type, MapSchema, ArraySchema } from "@colyseus/schema";
-import Player from "./player";
+import Player from "./Player";
 import { Node } from "./Node";
 import { Settings } from "./Settings"; // Assuming saved in Settings.ts
+import ChatMessage from "./ChatMessage";
 
 export class GameState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
   @type([Node]) board = new ArraySchema<Node>();
-  @type(["string"]) chatMessages = new ArraySchema<string>();
+  @type([ChatMessage]) chatMessages = new ArraySchema<ChatMessage>();
   @type(Settings) settings = new Settings(); // New settings object
 
   @type("boolean") public: boolean = true;

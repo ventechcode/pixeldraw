@@ -20,12 +20,12 @@ export default function Home() {
     <div className="h-screen relative w-full overflow-hidden bg-slate-900 flex flex-col items-center justify-center">
       <div className="absolute inset-0 w-full h-full bg-slate-900 z-20 [mask-image:radial-gradient(transparent,white)] pointer-events-none" />
       <BoxesContainer />
-      <h1 className="text-balance text-5xl font-semibold leading-none tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl">
+      <h1 className="text-balance text-5xl font-semibold leading-none tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl pb-12">
         <LineShadowText className="bold" shadowColor="white">
           PixelDraw.io
         </LineShadowText>
       </h1>
-      <div className="flex flex-col space-y-4 z-10 w-1/5 mt-8">
+      <div className="flex flex-col space-y-4 z-10 w-3/4 lg:w-1/4 mt-8">
         <Input
           type="text"
           className="bg-slate-700 border-0 text-white h-11 text-center font-light"
@@ -40,7 +40,7 @@ export default function Home() {
           onChange={(e) => setLobbyId(e.target.value)}
         />
         <Button
-          className="bg-[#a6e3a1] hover:bg-[#a6e3a1]/90 hover:cursor-pointer h-11 font-bold text-2xl"
+          className="bg-[#a6e3a1] hover:bg-[#a6e3a1]/90 hover:cursor-pointer h-14 lg:h-12 font-bold text-2xl"
           onClick={async () => {
             if (!name) {
               alert("Please enter your name");

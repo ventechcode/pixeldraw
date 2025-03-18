@@ -64,7 +64,7 @@ function LobbySettings({ leader }: LobbySettingsProps) {
             }
             disabled={room?.state.public || !leader}
           >
-            <SelectTrigger className="w-64">
+            <SelectTrigger className="w-36">
               <SelectValue placeholder="Select number of rounds" />
             </SelectTrigger>
             <SelectContent>
@@ -89,7 +89,7 @@ function LobbySettings({ leader }: LobbySettingsProps) {
             }
             disabled={!leader}
           >
-            <SelectTrigger className="w-64">
+            <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -125,7 +125,7 @@ function LobbySettings({ leader }: LobbySettingsProps) {
           {!room?.state.public && (
             <Button
               variant="outline"
-              className="cursor-pointer"
+              className="cursor-pointer text-black hover:text-black/80"
               onClick={() =>
                 navigator.clipboard.writeText(
                   window.location.origin + `?join=${room?.roomId}`
@@ -138,7 +138,7 @@ function LobbySettings({ leader }: LobbySettingsProps) {
           )}
           <Button
             disabled={!leader || room?.state.players.size < 2}
-            className="cursor-pointer"
+            className="cursor-pointer bg-[#a6e3a1] hover:bg-[#a6e3a1]/90 "
             onClick={() => {
               if (leader && room?.state.players.size > 1) {
                 room?.send("start");

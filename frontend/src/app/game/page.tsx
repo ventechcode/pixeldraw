@@ -73,31 +73,33 @@ export default function Game() {
   }
 
   return (
-    <div className="h-screen relative w-full overflow-hidden bg-slate-900 flex flex-row items-center justify-evenly text-[#DDE6ED]">
+    <div className="min-h-screen relative w-full overflow-hidden bg-slate-900 flex flex-col md:flex-row items-center justify-evenly text-[#DDE6ED] p-4 md:p-0">
       <div className="absolute inset-0 w-full h-full bg-slate-900 z-0[mask-image:radial-gradient(transparent,white)] pointer-events-none" />
       <BoxesContainer />
-      <div className="flex flex-col space-y-4 z-10 h-3/4 w-1/5">
-        <h1 className="text-center">
+      <div className="flex flex-col space-y-4 z-10 h-3/4 w-full md:w-1/5 mb-4 md:mb-0">
+        <h1 className="text-center text-lg md:text-xl">
           Round {room?.state.round}/{room?.state?.settings?.rounds}
         </h1>
-        <h1 className="text-center">
+        <h1 className="text-center text-lg md:text-xl">
           {isDrawing
             ? "Your are drawing!"
             : players?.get(drawerSessionId)?.name + " is drawing."}
         </h1>
-        <h1 className="text-center">
+        <h1 className="text-center text-lg md:text-xl">
           {isDrawing
             ? "Word: " + room?.state.currentWord
             : "Word length: " + room?.state.currentWord?.length}
         </h1>
-        <h1 className="text-center">Time left: {time.toString()}</h1>
+        <h1 className="text-center text-lg md:text-xl">
+          Time left: {time.toString()}
+        </h1>
         <PlayerList
           players={players ? players : new Map<string, any>()}
           room={room}
           isDrawing={isDrawing}
         />
       </div>
-      <div className="z-10 bg-white">
+      <div className="z-10 bg-white w-full md:w-auto max-w-full md:max-w-none">
         {isDrawing ? <DrawingBoard size={32} /> : <GuessingBoard size={32} />}
       </div>
       <ChatBox />

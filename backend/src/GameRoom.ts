@@ -1,8 +1,9 @@
 import { Client, Delayed, Room } from "@colyseus/core";
 import { GameState } from "./GameState"; // adjust path if needed
-import Player from "./player";
+import Player from "./Player";
 import { Node } from "./Node";
 import { Settings } from "./Settings";
+import ChatMessage from "./ChatMessage";
 
 class GameRoom extends Room<GameState> {
   state = new GameState();
@@ -23,14 +24,35 @@ class GameRoom extends Room<GameState> {
     this.onMessage("chat", (client, message) => {
       const player = this.state.players.get(client.sessionId);
 
+      if (player.guessed) {
+        // Send message to players who have guessed
+        const playerName = player.name;
+        const messageToSend = playerName + ": " + message;
+
+        const chatMessage = new ChatMessage();
+        chatMessage.message = messageToSend;
+        chatMessage.sessionId = client.sessionId;
+        this.state.chatMessages.push(chatMessage);
+
+        return;
+      }
+
       if (
         message.toLowerCase() == this.state.currentWord.toLowerCase() &&
         client.sessionId != this.state.drawerSessionId
       ) {
         player.guessed = true;
-        this.state.chatMessages.push(player.name + " guessed the word!");
+        player.score++; // TODO: Implement score system
+        const message = player.name + " guessed the word!";
+        const chatMessage = new ChatMessage();
+        chatMessage.message = message;
+        chatMessage.sessionId = client.sessionId;
+        this.state.chatMessages.push(chatMessage);
       } else {
-        this.state.chatMessages.push(player.name + ": " + message);
+        const chatMessage = new ChatMessage();
+        chatMessage.message = player.name + ": " + message;
+        chatMessage.sessionId = client.sessionId;
+        this.state.chatMessages.push(chatMessage);
       }
     });
 
@@ -80,7 +102,10 @@ class GameRoom extends Room<GameState> {
       player.leader = true;
     }
     this.state.players.set(client.sessionId, player);
-    this.state.chatMessages.push(`${player.name} joined.`);
+    const chatMessage = new ChatMessage();
+    chatMessage.message = player.name + " joined the game!";
+    chatMessage.sessionId = client.sessionId;
+    this.state.chatMessages.push(chatMessage);
 
     if (this.state.players.size > 1 && this.state.public) {
       this.state.started = true;
@@ -100,13 +125,19 @@ class GameRoom extends Room<GameState> {
     }
 
     console.log(player.name, client.sessionId, "left the lobby!");
-    this.state.chatMessages.push(`${player.name} left.`);
+    const chatMessage = new ChatMessage();
+    chatMessage.message = player.name + " left the game!";
+    chatMessage.sessionId = client.sessionId;
+    this.state.chatMessages.push(chatMessage);
 
     // Allow reconnection.
     const reconnectedClient = await this.allowReconnection(client, 60);
     console.log(player.name, reconnectedClient.sessionId, "reconnected!");
     this.state.players.set(reconnectedClient.sessionId, player);
-    this.state.chatMessages.push(`${player.name} reconnected.`);
+    const reconnectedChatMessage = new ChatMessage();
+    reconnectedChatMessage.message = player.name + " reconnected!";
+    reconnectedChatMessage.sessionId = reconnectedClient.sessionId;
+    this.state.chatMessages.push(reconnectedChatMessage);
   }
 
   onDispose() {
@@ -143,10 +174,16 @@ class GameRoom extends Room<GameState> {
       this.state.players.get(startingSession).name
     );
 
-    this.state.chatMessages.push(`Starting round ${this.state.round}`);
-    this.state.chatMessages.push(
-      this.state.players.get(startingSession).name + " is drawing!"
-    );
+    const startingRoundChatMessage = new ChatMessage();
+    startingRoundChatMessage.message = `Starting round ${this.state.round}`;
+    startingRoundChatMessage.sessionId = "system";
+    this.state.chatMessages.push(startingRoundChatMessage);
+
+    const startingDrawerChatMessage = new ChatMessage();
+    startingDrawerChatMessage.message =
+      this.state.players.get(startingSession).name + " is drawing!";
+    startingDrawerChatMessage.sessionId = "system";
+    this.state.chatMessages.push(startingDrawerChatMessage);
 
     this.startTurnTimer();
   }
@@ -175,6 +212,11 @@ class GameRoom extends Room<GameState> {
       currentPlayer.drawed = true;
       console.log(currentPlayer.name, "finished drawing");
     }
+
+    // Reset guessed status for all players.
+    this.state.players.forEach((player) => {
+      player.guessed = false;
+    });
 
     // Reset game board
     this.state.board.forEach((node) => {
@@ -218,7 +260,11 @@ class GameRoom extends Room<GameState> {
 
     const drawerName = this.state.players.get(newSession)?.name;
     console.log("New drawer is", drawerName || "undefined");
-    this.state.chatMessages.push(`${drawerName} is drawing!`);
+
+    const newDrawerChatMessage = new ChatMessage();
+    newDrawerChatMessage.message = `${drawerName} is drawing!`;
+    newDrawerChatMessage.sessionId = "system";
+    this.state.chatMessages.push(newDrawerChatMessage);
 
     // Set a new word and reset the timer.
     this.state.currentWord = this.selectRandomWord();
@@ -239,11 +285,16 @@ class GameRoom extends Room<GameState> {
     }
 
     console.log(`Starting round ${this.state.round}`);
-    this.state.chatMessages.push(`Starting round ${this.state.round}`);
 
-    // Reset draw status for all players.
+    const startingRoundChatMessage = new ChatMessage();
+    startingRoundChatMessage.message = `Starting round ${this.state.round}`;
+    startingRoundChatMessage.sessionId = "system";
+    this.state.chatMessages.push(startingRoundChatMessage);
+
+    // Reset status for all players.
     this.state.players.forEach((player) => {
       player.drawed = false;
+      player.guessed = false;
     });
 
     // Advance the turn order pointer so the new round starts with the next player.
@@ -255,7 +306,11 @@ class GameRoom extends Room<GameState> {
 
     const drawerName = this.state.players.get(newSession)?.name;
     console.log("New drawer is", drawerName || "undefined");
-    this.state.chatMessages.push(`${drawerName} is drawing!`);
+
+    const newDrawerChatMessage = new ChatMessage();
+    newDrawerChatMessage.message = `${drawerName} is drawing!`;
+    newDrawerChatMessage.sessionId = "system";
+    this.state.chatMessages.push(newDrawerChatMessage);
 
     // Reset time and choose a new word.
     this.state.time = this.state.settings.roundLength;
@@ -273,8 +328,15 @@ class GameRoom extends Room<GameState> {
   }
 
   endGame() {
-    this.state.chatMessages.push("Game ended.");
-    this.state.chatMessages.push("Room will close soon, thanks for playing!");
+    const endGameChatMessage = new ChatMessage();
+    endGameChatMessage.message = "Game ended.";
+    endGameChatMessage.sessionId = "system";
+    this.state.chatMessages.push(endGameChatMessage);
+
+    const closingChatMessage = new ChatMessage();
+    closingChatMessage.message = "Room will close soon, thanks for playing!";
+    closingChatMessage.sessionId = "system";
+    this.state.chatMessages.push(closingChatMessage);
 
     // Set a 5-minute timer before disconnecting all clients.
     this.clock.setTimeout(() => {

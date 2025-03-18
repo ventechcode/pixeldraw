@@ -12,17 +12,22 @@ export default function PlayerList({
 }) {
   return (
     <div className="bg-[#27374D] shadow-lg h-full w-full">
-      <AnimatedList className="w-full">
+      <AnimatedList className="w-full gap-0 py-4" delay={0.1}>
         {Array.from(players?.values() || []).map((player, i) => (
           <div
             key={i}
-            className="flex flex-row justify-between border p-4 w-full"
+            className="flex flex-row justify-between px-4 py-2 w-full"
           >
             <h1>
-              {player.leader ? "👑 " : ""}
+              {player.leader ? "👑 " : "👤 "}
               {player.name}
+              {player.sessionId === room.sessionId ? " (You)" : ""}
+              {room.state.drawerSessionId === player.sessionId &&
+              room.state.started
+                ? " ✏️"
+                : ""}
             </h1>
-            <h1>{room.state.started ? "Score: " + player.score : ""}</h1>
+            <h1>{room.state.started ? player.score + "P" : ""}</h1>
           </div>
         ))}
       </AnimatedList>
