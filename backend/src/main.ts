@@ -5,6 +5,7 @@ import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
 import dotenv from "dotenv";
 import { monitor } from "@colyseus/monitor";
+import basicAuth from "express-basic-auth";
 
 import { matchMaker } from "@colyseus/core";
 
@@ -42,7 +43,20 @@ const port = Number(process.env.PORT);
 
 app.use(cors());
 app.use(express.json());
-app.use("/monitor", monitor());
+
+// Add authentication to the monitor route
+const adminUsername = process.env.ADMIN_USERNAME;
+const adminPassword = process.env.ADMIN_PASSWORD;
+
+app.use(
+  "/monitor",
+  basicAuth({
+    users: { [adminUsername]: adminPassword },
+    challenge: true,
+    realm: "PixelDraw Admin Monitor",
+  }),
+  monitor()
+);
 
 const server = http.createServer(app);
 const gameServer = new Server({

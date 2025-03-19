@@ -52,9 +52,6 @@ export function Grid({ size, isDrawer, currentWord }: GridProps) {
   // Function to clear the grid
   const clearGrid = () => {
     if (isDrawer && room) {
-      console.log("Sending clear_board command to server");
-
-      // Send clear command to server
       room.send("clear_board");
 
       // Force reset locally
