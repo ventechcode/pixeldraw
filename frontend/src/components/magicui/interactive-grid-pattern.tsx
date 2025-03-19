@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import React, { useState } from "react";
+import React from "react";
+import Node from "../Node";
 
 /**
  * InteractiveGridPattern is a component that renders a grid pattern with interactive squares.
@@ -35,35 +36,25 @@ export function InteractiveGridPattern({
   ...props
 }: InteractiveGridPatternProps) {
   const [horizontal, vertical] = squares;
-  const [hoveredSquare, setHoveredSquare] = useState<number | null>(null);
 
   return (
     <svg
       width={width * horizontal}
       height={height * vertical}
-      className={cn(
-        "absolute inset-0 h-full w-full border border-gray-400/30",
-        className,
-      )}
+      className={cn("absolute inset-0 h-full w-full border ", className)}
       {...props}
     >
       {Array.from({ length: horizontal * vertical }).map((_, index) => {
         const x = (index % horizontal) * width;
         const y = Math.floor(index / horizontal) * height;
         return (
-          <rect
+          <Node
             key={index}
+            index={index}
             x={x}
             y={y}
             width={width}
             height={height}
-            className={cn(
-              "stroke-gray-400/30 transition-all duration-100 ease-in-out [&:not(:hover)]:duration-1000",
-              hoveredSquare === index ? "fill-gray-300/30" : "fill-transparent",
-              squaresClassName,
-            )}
-            onMouseEnter={() => setHoveredSquare(index)}
-            onMouseLeave={() => setHoveredSquare(null)}
           />
         );
       })}

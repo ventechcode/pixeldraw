@@ -1,5 +1,8 @@
+"use client";
+
 import { cn } from "@/lib/utils";
-import { motion, MotionProps } from "motion/react";
+import { motion, type MotionProps } from "framer-motion";
+import type React from "react";
 
 interface LineShadowTextProps
   extends Omit<React.HTMLAttributes<HTMLElement>, keyof MotionProps>,
@@ -15,7 +18,7 @@ export function LineShadowText({
   as: Component = "span",
   ...props
 }: LineShadowTextProps) {
-  const MotionComponent = motion.create(Component);
+  const MotionComponent = motion(Component as any);
   const content = typeof children === "string" ? children : null;
 
   if (!content) {
@@ -24,19 +27,44 @@ export function LineShadowText({
 
   return (
     <MotionComponent
-      style={{ "--shadow-color": shadowColor } as React.CSSProperties}
-      className={cn(
-        "relative z-0 inline-flex",
-        "after:absolute after:left-[0.04em] after:top-[0.04em] after:content-[attr(data-text)]",
-        "after:bg-[linear-gradient(45deg,transparent_45%,var(--shadow-color)_45%,var(--shadow-color)_55%,transparent_0)]",
-        "after:-z-10 after:bg-[length:0.06em_0.06em] after:bg-clip-text after:text-transparent",
-        "after:animate-line-shadow",
-        className,
-      )}
+      style={
+        {
+          "--shadow-color": shadowColor,
+          position: "relative",
+          zIndex: 0,
+          display: "inline-flex",
+        } as React.CSSProperties
+      }
+      className={cn(className)}
       data-text={content}
       {...props}
     >
       {content}
+      <span
+        style={{
+          position: "absolute",
+          left: "0.07em",
+          top: "0.07em",
+          zIndex: -10,
+          backgroundImage: `linear-gradient(45deg, transparent 45%, ${shadowColor} 45%, ${shadowColor} 55%, transparent 0)`,
+          backgroundSize: "0.06em 0.06em",
+          backgroundClip: "text",
+          color: "transparent",
+          animation: "lineShadowMove 44s linear infinite",
+        }}
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+      <style jsx>{`
+        @keyframes lineShadowMove {
+          0%,
+          100% {
+            background-position: 0% 0%;
+          }
+          50% {
+            background-position: 100% 100%;
+          }
+        }
+      `}</style>
     </MotionComponent>
   );
 }

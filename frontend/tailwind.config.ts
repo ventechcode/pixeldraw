@@ -10,6 +10,17 @@ module.exports = {
   darkMode: "class",
   presets: [require("@catppuccin/tailwindcss")],
   theme: {
+    extend: {
+      animation: {
+        "line-shadow": "line-shadow 64s linear infinite",
+      },
+      keyframes: {
+        "line-shadow": {
+          "0%, 100%": { backgroundPosition: "0% 0%" },
+          "50%": { backgroundPosition: "100% 100%" },
+        },
+      },
+    },
     screens: {
       xs: "400px",
       sm: "640px",

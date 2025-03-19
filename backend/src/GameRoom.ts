@@ -67,11 +67,26 @@ class GameRoom extends Room<GameState> {
 
     // Handle drawing event
     this.onMessage("draw", (client, message) => {
+      console.log("draw", message);
       if (client.sessionId == this.state.drawerSessionId) {
         this.state.board[message.index] = new Node(
           message.color,
           message.index
         );
+      }
+    });
+
+    // Handle clear board event
+    this.onMessage("clear_board", (client) => {
+      if (client.sessionId == this.state.drawerSessionId) {
+        console.log("Clearing the board at server request");
+
+        this.state.board.forEach((node) => {
+          node.color = "bg-transparent";
+        });
+
+        // Send an additional event to signal the client to refresh the board
+        this.broadcast("board_cleared");
       }
     });
 
