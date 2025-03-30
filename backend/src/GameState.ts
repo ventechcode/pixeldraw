@@ -12,6 +12,7 @@ export class GameState extends Schema {
 
   @type("boolean") public: boolean = true;
   @type("string") currentWord: string = "Test";
+  @type("string") wordForDrawer: string = ""; // Word visible only to the drawer
   @type("string") drawerSessionId: string = "";
   @type("number") round: number = 1;
   @type("number") time: number = this.settings.roundLength; // Updated reference

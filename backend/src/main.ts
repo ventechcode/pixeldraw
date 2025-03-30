@@ -46,12 +46,23 @@ app.use(express.json());
 
 // Add authentication to the monitor route
 const adminUsername = process.env.ADMIN_USERNAME;
-const adminPassword = process.env.ADMIN_PASSWORD;
+const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
 
 app.use(
   "/monitor",
   basicAuth({
-    users: { [adminUsername]: adminPassword },
+    authorizer: (username, password) => {
+      const userMatches = basicAuth.safeCompare(username, adminUsername);
+
+      // Use a proper password verification library like bcrypt
+      // This is just a placeholder - you need to import bcrypt
+      const passwordMatches = require("bcrypt").compareSync(
+        password,
+        adminPasswordHash
+      );
+
+      return userMatches && passwordMatches;
+    },
     challenge: true,
     realm: "PixelDraw Admin Monitor",
   }),

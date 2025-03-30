@@ -5,4 +5,5 @@ export class Settings extends Schema {
   @type("number") roundLength: number = 60;
   @type("number") maxPlayers: number = 10;
   @type("string") gameMode: string = "Normal";
+  @type("number") gridSize: number = 32;
 }

@@ -5,6 +5,12 @@ import { Node } from "./Node";
 import { Settings } from "./Settings";
 import ChatMessage from "./ChatMessage";
 
+// Define the type for batch drawing updates
+interface DrawUpdate {
+  index: number;
+  color: string;
+}
+
 class GameRoom extends Room<GameState> {
   state = new GameState();
   public delayedInterval!: Delayed;
@@ -12,6 +18,14 @@ class GameRoom extends Room<GameState> {
   private turnOrder: string[] = [];
   // Index into turnOrder for the current drawer.
   private currentTurnIndex: number = 0;
+  // Track whether any valid drawing has been made this round
+  private hasValidDrawing: boolean = false;
+  // Track how many pixels have been drawn this round
+  private pixelsDrawnThisRound: number = 0;
+  // Track the first person to guess correctly for bonus points
+  private firstGuesser: string | null = null;
+
+  private turnTimeoutId: Delayed | null = null; // Add this property to track the timeout
 
   onCreate(options: any) {
     // Initialize state with options
@@ -24,6 +38,7 @@ class GameRoom extends Room<GameState> {
     this.onMessage("chat", (client, message) => {
       const player = this.state.players.get(client.sessionId);
 
+      // Handle message differently if player has already guessed
       if (player.guessed) {
         // Send message to players who have guessed
         const playerName = player.name;
@@ -37,18 +52,86 @@ class GameRoom extends Room<GameState> {
         return;
       }
 
+      // Check if the message is the correct word
       if (
         message.toLowerCase() == this.state.currentWord.toLowerCase() &&
-        client.sessionId != this.state.drawerSessionId
+        client.sessionId != this.state.drawerSessionId &&
+        this.hasValidDrawing // Only allow guessing if drawer has drawn something
       ) {
+        // Player guessed correctly!
         player.guessed = true;
-        player.score++; // TODO: Implement score system
-        const message = player.name + " guessed the word!";
+
+        // Calculate score based on remaining time and order of guessing
+        const timeRemaining = this.state.time;
+        const maxRoundTime = this.state.settings.roundLength;
+
+        // Base score: 1-100 based on how quickly they guessed (percentage of time remaining)
+        let scoreForGuess = Math.ceil((timeRemaining / maxRoundTime) * 100);
+
+        // First-guesser bonus
+        if (this.firstGuesser === null) {
+          this.firstGuesser = client.sessionId;
+          scoreForGuess += 50; // Bonus for being first
+
+          // Also award points to the drawer when the first person guesses correctly
+          const drawer = this.state.players.get(this.state.drawerSessionId);
+          if (drawer) {
+            drawer.score += 30; // Base points for drawer when someone guesses correctly
+            // Add bonus based on how quickly someone guessed
+            drawer.score += Math.ceil((timeRemaining / maxRoundTime) * 30);
+          }
+        }
+
+        // Add the calculated score to the player
+        player.score += scoreForGuess;
+
+        // Create success message for chat
+        const successMessage = `${player.name} guessed the word correctly! (+${scoreForGuess} points)`;
         const chatMessage = new ChatMessage();
-        chatMessage.message = message;
-        chatMessage.sessionId = client.sessionId;
+        chatMessage.message = successMessage;
+        chatMessage.sessionId = "system"; // Using system to differentiate
+        chatMessage.type = "success"; // Add a type for styling
         this.state.chatMessages.push(chatMessage);
+
+        // Check if all players (except drawer) have guessed
+        const allPlayersGuessed = this.checkAllPlayersGuessed();
+        if (allPlayersGuessed) {
+          // Everyone has guessed - end this turn early
+          const allGuessedMessage =
+            "Everyone guessed the word! Moving to next turn...";
+          const endTurnMessage = new ChatMessage();
+          endTurnMessage.message = allGuessedMessage;
+          endTurnMessage.sessionId = "system";
+          endTurnMessage.type = "info";
+          this.state.chatMessages.push(endTurnMessage);
+
+          // Give drawer bonus for everyone guessing
+          const drawer = this.state.players.get(this.state.drawerSessionId);
+          if (drawer) {
+            const perfectDrawBonus = 50;
+            drawer.score += perfectDrawBonus;
+
+            const drawerBonusMessage = `${drawer.name} gets a bonus for a perfect drawing! (+${perfectDrawBonus} points)`;
+            const bonusMessage = new ChatMessage();
+            bonusMessage.message = drawerBonusMessage;
+            bonusMessage.sessionId = "system";
+            bonusMessage.type = "info";
+            this.state.chatMessages.push(bonusMessage);
+          }
+
+          // Clear any existing timers
+          this.delayedInterval?.clear();
+          if (this.turnTimeoutId) {
+            this.turnTimeoutId.clear();
+            this.turnTimeoutId = null;
+          }
+
+          this.clock.setTimeout(() => {
+            this.nextTurn();
+          }, 3000); // Give players 3 seconds to see the results
+        }
       } else {
+        // Regular chat message
         const chatMessage = new ChatMessage();
         chatMessage.message = player.name + ": " + message;
         chatMessage.sessionId = client.sessionId;
@@ -65,14 +148,62 @@ class GameRoom extends Room<GameState> {
       }
     });
 
-    // Handle drawing event
+    // Handle drawing event (single node)
     this.onMessage("draw", (client, message) => {
-      console.log("draw", message);
       if (client.sessionId == this.state.drawerSessionId) {
+        // Set the node color
         this.state.board[message.index] = new Node(
           message.color,
           message.index
         );
+
+        // Track that drawing has happened
+        if (
+          !this.hasValidDrawing &&
+          message.color !== "transparent" &&
+          message.color !== "bg-transparent"
+        ) {
+          this.hasValidDrawing = true;
+        }
+
+        // Count pixels drawn if it's not an eraser action
+        if (
+          message.color !== "transparent" &&
+          message.color !== "bg-transparent"
+        ) {
+          this.pixelsDrawnThisRound++;
+        }
+      }
+    });
+
+    // Handle batch drawing events for improved performance
+    this.onMessage("draw_batch", (client, messages: DrawUpdate[]) => {
+      if (
+        client.sessionId == this.state.drawerSessionId &&
+        Array.isArray(messages)
+      ) {
+        // Process each update in the batch
+        messages.forEach((update) => {
+          // Set the node color
+          this.state.board[update.index] = new Node(update.color, update.index);
+
+          // Track that drawing has happened (only need to set once)
+          if (
+            !this.hasValidDrawing &&
+            update.color !== "transparent" &&
+            update.color !== "bg-transparent"
+          ) {
+            this.hasValidDrawing = true;
+          }
+
+          // Count pixels drawn if it's not an eraser action
+          if (
+            update.color !== "transparent" &&
+            update.color !== "bg-transparent"
+          ) {
+            this.pixelsDrawnThisRound++;
+          }
+        });
       }
     });
 
@@ -159,6 +290,25 @@ class GameRoom extends Room<GameState> {
     console.log("Lobby disposed!");
   }
 
+  // Helper method to check if all non-drawer players have guessed
+  checkAllPlayersGuessed() {
+    // Skip check if less than 2 players (need at least 1 drawer + 1 guesser)
+    if (this.state.players.size < 2) return false;
+
+    let allGuessed = true;
+    this.state.players.forEach((player, sessionId) => {
+      // Skip the drawer from this check
+      if (sessionId !== this.state.drawerSessionId) {
+        // If any non-drawer hasn't guessed, not everyone has guessed
+        if (!player.guessed) {
+          allGuessed = false;
+        }
+      }
+    });
+
+    return allGuessed;
+  }
+
   initGame() {
     // Create a fixed turn order from the current players.
     this.turnOrder = Array.from(this.state.players.keys());
@@ -173,7 +323,13 @@ class GameRoom extends Room<GameState> {
     // Reset each player's draw flag.
     this.state.players.forEach((player) => {
       player.drawed = false;
+      player.guessed = false;
     });
+
+    // Reset drawing track variables
+    this.hasValidDrawing = false;
+    this.pixelsDrawnThisRound = 0;
+    this.firstGuesser = null;
 
     // Empty chat
     this.state.chatMessages.clear();
@@ -200,6 +356,9 @@ class GameRoom extends Room<GameState> {
     startingDrawerChatMessage.sessionId = "system";
     this.state.chatMessages.push(startingDrawerChatMessage);
 
+    // Announce the word to the drawer by updating a state property only visible to the drawer
+    this.state.wordForDrawer = this.state.currentWord;
+
     this.startTurnTimer();
   }
 
@@ -208,9 +367,15 @@ class GameRoom extends Room<GameState> {
     this.clock.start();
 
     // When time expires, clear the interval and advance turn.
-    this.clock.setTimeout(() => {
+    this.turnTimeoutId = this.clock.setTimeout(() => {
       this.delayedInterval.clear();
-      this.nextTurn();
+
+      this.broadcast("time_up");
+
+      // Wait a moment before advancing to next turn (increased from 3 to 10 seconds)
+      this.clock.setTimeout(() => {
+        this.nextTurn();
+      }, 5000); // Give players 10 seconds to see the results
     }, (this.state.settings.roundLength + 1) * 1000);
 
     // Decrement time every second.
@@ -228,6 +393,13 @@ class GameRoom extends Room<GameState> {
       console.log(currentPlayer.name, "finished drawing");
     }
 
+    // Clear any existing timers first
+    this.delayedInterval?.clear();
+    if (this.turnTimeoutId) {
+      this.turnTimeoutId.clear();
+      this.turnTimeoutId = null;
+    }
+
     // Reset guessed status for all players.
     this.state.players.forEach((player) => {
       player.guessed = false;
@@ -237,6 +409,11 @@ class GameRoom extends Room<GameState> {
     this.state.board.forEach((node) => {
       node.color = "bg-transparent";
     });
+
+    // Reset drawing track variables
+    this.hasValidDrawing = false;
+    this.pixelsDrawnThisRound = 0;
+    this.firstGuesser = null;
 
     // Check if all players in this round have drawn.
     const allDrawn = this.turnOrder.every((sessionId) => {
@@ -281,22 +458,36 @@ class GameRoom extends Room<GameState> {
     newDrawerChatMessage.sessionId = "system";
     this.state.chatMessages.push(newDrawerChatMessage);
 
+    // Set the word for the drawer
+    this.state.wordForDrawer = this.state.currentWord;
+
     // Set a new word and reset the timer.
     this.state.currentWord = this.selectRandomWord();
     this.state.time = this.state.settings.roundLength;
 
-    // Restart the turn timer.
-    this.startTurnTimer();
+    // Set the word for the drawer
+    this.state.wordForDrawer = this.state.currentWord;
+
+    // Restart the turn timer with a brief delay (3 seconds) to show the overlay
+    this.clock.setTimeout(() => {
+      this.startTurnTimer();
+    }, 1000);
   }
 
   nextRound() {
-    // Increase round count.
-    this.state.round++;
-
     // Check if game should end.
-    if (this.state.round > this.state.settings.rounds) {
+    if (this.state.round == this.state.settings.rounds) {
       this.endGame();
       return;
+    } else if (this.state.round < this.state.settings.rounds) {
+      this.state.round++;
+    }
+
+    // Clear any existing timers first
+    this.delayedInterval?.clear();
+    if (this.turnTimeoutId) {
+      this.turnTimeoutId.clear();
+      this.turnTimeoutId = null;
     }
 
     console.log(`Starting round ${this.state.round}`);
@@ -311,6 +502,11 @@ class GameRoom extends Room<GameState> {
       player.drawed = false;
       player.guessed = false;
     });
+
+    // Reset drawing track variables
+    this.hasValidDrawing = false;
+    this.pixelsDrawnThisRound = 0;
+    this.firstGuesser = null;
 
     // Advance the turn order pointer so the new round starts with the next player.
     this.currentTurnIndex = (this.currentTurnIndex + 1) % this.turnOrder.length;
@@ -327,25 +523,116 @@ class GameRoom extends Room<GameState> {
     newDrawerChatMessage.sessionId = "system";
     this.state.chatMessages.push(newDrawerChatMessage);
 
+    // Set the word for the drawer
+    this.state.wordForDrawer = this.state.currentWord;
+
     // Reset time and choose a new word.
     this.state.time = this.state.settings.roundLength;
     this.state.currentWord = this.selectRandomWord();
 
-    // Start the timer for the new round.
-    this.startTurnTimer();
+    // Set the word for the drawer
+    this.state.wordForDrawer = this.state.currentWord;
+
+    // Restart the turn timer with a brief delay (5 seconds) to show the overlay
+    this.clock.setTimeout(() => {
+      this.startTurnTimer();
+    }, 5000);
   }
 
   selectRandomWord() {
-    // Replace with your word selection logic.
-    const words = ["apple", "banana", "carrot", "dog", "elephant"];
+    // A better word list for the drawing game
+    const words = [
+      "apple",
+      "banana",
+      "car",
+      "dog",
+      "elephant",
+      "flower",
+      "giraffe",
+      "house",
+      "icecream",
+      "jellyfish",
+      "kite",
+      "lion",
+      "mountain",
+      "notebook",
+      "ocean",
+      "penguin",
+      "queen",
+      "robot",
+      "sun",
+      "tree",
+      "umbrella",
+      "volcano",
+      "whale",
+      "xylophone",
+      "yacht",
+      "zebra",
+      "airplane",
+      "beach",
+      "castle",
+      "dragon",
+      "eagle",
+      "forest",
+      "guitar",
+      "helicopter",
+      "island",
+      "jungle",
+      "kangaroo",
+      "lighthouse",
+      "moon",
+      "ninja",
+      "owl",
+      "pirate",
+      "rainbow",
+      "shark",
+      "tiger",
+      "unicorn",
+      "violin",
+      "waterfall",
+      "fox",
+      "yeti",
+      "zombie",
+      "astronaut",
+      "butterfly",
+      "cactus",
+      "dolphin",
+      "egg",
+      "firefighter",
+      "ghost",
+      "hamburger",
+    ];
     const randomIndex = Math.floor(Math.random() * words.length);
     return words[randomIndex];
   }
 
   endGame() {
+    // Find the winner
+    let highestScore = -1;
+    let winners: Player[] = [];
+
+    this.state.players.forEach((player) => {
+      if (player.score > highestScore) {
+        highestScore = player.score;
+        winners = [player];
+      } else if (player.score === highestScore) {
+        winners.push(player);
+      }
+    });
+
+    // Create winner message
+    let winnerMessage: string;
+    if (winners.length === 1) {
+      winnerMessage = `Game over! ${winners[0].name} wins with ${highestScore} points!`;
+    } else {
+      const winnerNames = winners.map((p) => p.name).join(" and ");
+      winnerMessage = `Game over! ${winnerNames} tie for the win with ${highestScore} points!`;
+    }
+
     const endGameChatMessage = new ChatMessage();
-    endGameChatMessage.message = "Game ended.";
+    endGameChatMessage.message = winnerMessage;
     endGameChatMessage.sessionId = "system";
+    endGameChatMessage.type = "success";
     this.state.chatMessages.push(endGameChatMessage);
 
     const closingChatMessage = new ChatMessage();

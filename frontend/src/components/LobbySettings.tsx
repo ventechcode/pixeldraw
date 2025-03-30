@@ -17,6 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useRoom } from "@/hooks/useRoom";
 import { getStateCallbacks } from "colyseus.js";
+import { Input } from "@/components/ui/input";
 
 import { FaLink } from "react-icons/fa";
 
@@ -28,6 +29,8 @@ function LobbySettings({ leader }: LobbySettingsProps) {
   const { room } = useRoom();
 
   const [settings, setSettings] = useState(room?.state.settings || {});
+  const [customGridSize, setCustomGridSize] = useState<string>("");
+  const [isCustomGridSize, setIsCustomGridSize] = useState<boolean>(false);
 
   useEffect(() => {
     if (!room || !room.state.settings) return;
@@ -37,17 +40,64 @@ function LobbySettings({ leader }: LobbySettingsProps) {
     $(room.state).listen("settings", (newSettings: any) => {
       console.log("Settings updated:", newSettings);
       setSettings({ ...newSettings });
+      setIsCustomGridSize(![16, 32, 64].includes(newSettings.gridSize));
+      setCustomGridSize(
+        ![16, 32, 64].includes(newSettings.gridSize)
+          ? newSettings.gridSize.toString()
+          : ""
+      );
     });
   }, [room]);
 
+  // Handle custom grid size input
+  const handleCustomGridSize = (value: string) => {
+    // Only allow numeric input
+    if (!/^\d*$/.test(value)) return;
+
+    setCustomGridSize(value);
+
+    // Update the grid size if it's valid
+    const size = parseInt(value);
+    if (size >= 10 && size <= 128) {
+      room?.send("set_setting", {
+        key: "gridSize",
+        value: size,
+      });
+    }
+  };
+
+  // Handle grid size select change
+  const handleGridSizeChange = (value: string) => {
+    if (value === "custom") {
+      setIsCustomGridSize(true);
+      // If we already have a grid size that's not 16, 32, or 64, keep it
+      if (![16, 32, 64].includes(settings.gridSize)) {
+        setCustomGridSize(settings.gridSize.toString());
+      } else {
+        setCustomGridSize("");
+      }
+    } else {
+      setIsCustomGridSize(false);
+      room?.send("set_setting", {
+        key: "gridSize",
+        value: parseInt(value),
+      });
+    }
+  };
+
   return (
-    <Card className="w-3/5 h-3/4 bg-[#526D82] z-20 border-none rounded-none text-[#DDE6ED] px-24">
+    <Card className="w-3/5 h-3/4 bg-[#526D82] z-20 border-none text-[#DDE6ED] px-24 rounded-md">
       <CardHeader>
         <CardTitle className="text-xl text-center">
-          Private Lobby {room?.roomId}
+          {room?.state.public ? "Public Lobby" : "Private Lobby"}
         </CardTitle>
-        <CardDescription className="text-md text-center">
-          Game Settings
+        <CardDescription className="text-md text-center text-[#DDE6ED]/90">
+          {room?.state.public
+            ? "Anyone can join. Waiting for players..."
+            : "Players can join via room ID"}
+        </CardDescription>
+        <CardDescription className="text-md text-center text-gray-400 mt-8">
+          {room?.state.public ? "Default Settings" : "Custom Settings"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -74,6 +124,43 @@ function LobbySettings({ leader }: LobbySettingsProps) {
               <SelectItem value="10">10</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Grid Size */}
+        <div className="flex flex-row items-center justify-between space-x-4 w-full">
+          <label className="text-lg">Grid Size</label>
+          <div className="flex items-center space-x-2">
+            <Select
+              value={
+                isCustomGridSize ? "custom" : settings.gridSize?.toString()
+              }
+              onValueChange={handleGridSizeChange}
+              disabled={!leader}
+            >
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Select grid size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="16">16 x 16</SelectItem>
+                <SelectItem value="32">32 x 32</SelectItem>
+                <SelectItem value="64">64 x 64</SelectItem>
+                <SelectItem value="custom">Custom...</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {isCustomGridSize && (
+              <Input
+                type="text"
+                placeholder="10-128"
+                className="w-24 bg-[#627991] border-none text-white"
+                value={customGridSize}
+                onChange={(e) => handleCustomGridSize(e.target.value)}
+                min={10}
+                max={128}
+                disabled={!leader}
+              />
+            )}
+          </div>
         </div>
 
         {/* Max Players */}
@@ -110,9 +197,9 @@ function LobbySettings({ leader }: LobbySettingsProps) {
             onValueChange={(value: any) =>
               room?.send("set_setting", { key: "roundLength", value: value[0] })
             }
-            min={30}
-            max={300}
-            step={30}
+            min={15}
+            max={240}
+            step={15}
             disabled={!leader}
           />
           <span className="text-md text-gray-700">
